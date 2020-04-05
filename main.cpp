@@ -77,6 +77,7 @@ int main(void) {
 			rotors[rotorIndex].position = rotorPosition - 1;
 			rotorIndexes[j] = rotorIndex;
 		}
+		delete[] rotorIndexes;
 		int reflectorIndex;
 		scanf("%d", &reflectorIndex);
 		int size = 16;
@@ -98,6 +99,9 @@ int main(void) {
 		}
 		enigmaMachine(numberOfLetters, amountOfRotors, rotors, reflectors, rotorIndexes, reflectorIndex, inputLength, input);
 	}
+
+	delete[] rotors;
+	delete[] reflectors;
 	return 0;
 }
 
@@ -171,6 +175,7 @@ void enigmaMachine(int numberOfLetters, int amountOfRotors, Rotor* rotors, Rotor
 		printf("%d ", modulo2(value, numberOfLetters));
 	}
 	printf("\n");
+	delete[] setup;
 }
 
 int modulo(int value, int max) {
