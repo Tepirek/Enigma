@@ -10,13 +10,12 @@ struct Rotor {
 	int* notch;
 	int* code;
 	int* operations;
-	int* operationsReverse;
 };
 
 int* encodeRotor(int numberOfLetters, int* code);
 int* encodeRotorReverse(int numberOfLetters, int* code);
 void printRotors(int numberOfLetters, int numberOfRotors, Rotor* rotors);
-void enigmaMachine(int numberOfLetters, int amountOfRotors, Rotor* rotors, Rotor* reflectors, int* rotorIndexes, int reflectorIndex, int inputLength, int* input);
+void enigmaMachine(Rotor* setup, int amountOfElements, int numberOfLetters, int amountOfRotors, int inputLength, int* input);
 int modulo(int value, int max);
 int modulo2(int value, int max);
 void updateRotors(Rotor* setup, int amountOfRotors, int numberOfLetters);
@@ -37,7 +36,6 @@ int main(void) {
 		}
 		rotors[i].position = 0;
 		rotors[i].operations = encodeRotor(numberOfLetters, code);
-		rotors[i].operationsReverse = encodeRotorReverse(numberOfLetters, code);
 		int notchAmount;
 		scanf("%d", &notchAmount);
 		int* notch = new int[notchAmount];
@@ -59,7 +57,6 @@ int main(void) {
 		}
 		reflectors[i].position = 0;
 		reflectors[i].operations = encodeRotor(numberOfLetters, code);
-		reflectors[i].operationsReverse = encodeRotorReverse(numberOfLetters, code);
 		delete[] code;
 	}
 	// A set of p tasks to perform
@@ -68,18 +65,22 @@ int main(void) {
 	for (int i = 0; i < numberOfTasks; i++) {
 		int amountOfRotors;
 		scanf("%d", &amountOfRotors);
-		int* rotorIndexes = new int[amountOfRotors];
+		int amountOfElements = (amountOfRotors * 2) + 1;
+		Rotor* setup = new Rotor[amountOfElements * sizeof(Rotor)];
 		for (int j = 0; j < amountOfRotors; j++) {
 			int rotorIndex;
 			scanf("%d", &rotorIndex);
+			memcpy(&setup[j], &rotors[rotorIndex], sizeof Rotor);
+			memcpy(&setup[amountOfRotors * 2 - j], &rotors[rotorIndex], sizeof Rotor);
 			int rotorPosition;
 			scanf("%d", &rotorPosition);
-			rotors[rotorIndex].position = rotorPosition - 1;
-			rotorIndexes[j] = rotorIndex;
+			setup[j].position = rotorPosition - 1;
+			setup[amountOfRotors * 2 - j].position = rotorPosition - 1;
 		}
-		delete[] rotorIndexes;
 		int reflectorIndex;
 		scanf("%d", &reflectorIndex);
+		memcpy(&setup[amountOfRotors], &reflectors[reflectorIndex], sizeof Rotor);
+		// printRotors(numberOfLetters, amountOfElements, setup);
 		int size = 16;
 		int* input = new int[size];
 		char c;
@@ -97,9 +98,8 @@ int main(void) {
 				delete[] tmp;
 			}
 		}
-		enigmaMachine(numberOfLetters, amountOfRotors, rotors, reflectors, rotorIndexes, reflectorIndex, inputLength, input);
+		enigmaMachine(setup, amountOfElements, numberOfLetters, amountOfRotors, inputLength, input);
 	}
-
 	delete[] rotors;
 	delete[] reflectors;
 	return 0;
@@ -127,27 +127,13 @@ void printRotors(int numberOfLetters, int numberOfRotors, Rotor* rotors) {
 		for (int j = 0; j < numberOfLetters; j++) {
 			printf("%d ", rotors[i].operations[j]);
 		}
-		printf("Rotor %d -> ", i + 1);
-		for (int j = 0; j < numberOfLetters; j++) {
-			printf("%d ", rotors[i].operationsReverse[j]);
-		}
-		printf("\n");
+		printf(" Position: %d\n", rotors[i].position);
 	}
 }
 
-void enigmaMachine(int numberOfLetters, int amountOfRotors, Rotor* rotors, Rotor* reflectors, int* rotorIndexes, int reflectorIndex, int inputLength, int* input) {
+void enigmaMachine(Rotor* setup, int amountOfElements, int numberOfLetters, int amountOfRotors, int inputLength, int* input) {
 	// machine setup
-	int amountOfElements = (amountOfRotors * 2) + 1;
-	Rotor* setup = new Rotor[amountOfElements * sizeof(Rotor)];
-	for (int i = 0; i < amountOfRotors; i++) {
-		Rotor rotor = rotors[rotorIndexes[i]];
-		// rotor.operations = encodeRotor(numberOfLetters, rotor.code);
-		// rotor.operationsReverse = encodeRotorReverse(numberOfLetters, rotor.code);
-		setup[i] = rotors[rotorIndexes[i]];
-		setup[amountOfRotors * 2 - i] = rotors[rotorIndexes[i]];
-	}
-	setup[amountOfRotors] = reflectors[reflectorIndex];
-	// decoding
+	// encryption
 	for (int i = 0; i < inputLength; i++) {
 		updateRotors(setup, amountOfRotors, numberOfLetters);
 		int value = input[i];
@@ -155,23 +141,19 @@ void enigmaMachine(int numberOfLetters, int amountOfRotors, Rotor* rotors, Rotor
 		int rotorOperation = 0;
 		int offset = modulo(value - 1, numberOfLetters);
 		int position = modulo(offset + rotorPosition, numberOfLetters);
-		// printf("Input: %d\n", value);
 		for (int j = 0; j < amountOfElements; j++) {
 			rotorPosition = setup[j].position;
 			position = modulo(offset + rotorPosition, numberOfLetters);
 			if (j <= amountOfRotors) {
 				rotorOperation = setup[j].operations[position];
-				// printf("Normal => %d\n", rotorOperation);
 			}
 			else {
 				rotorOperation = findOperation(offset, setup[j].position, numberOfLetters, setup[j].operations);
-				// printf("Reverse => %d\n", rotorOperation);
 			}
 			value = modulo2(value + rotorOperation, numberOfLetters);
 			offset = modulo(offset + rotorOperation, numberOfLetters);
 			// printf("Rotor %d => value = %d, offset = %d, rP = %d, rO = %d\n", j + 1, value, offset, rotorPosition, rotorOperation);
 		}
-		// printf("Output: %d \n", modulo2(value, numberOfLetters));
 		printf("%d ", modulo2(value, numberOfLetters));
 	}
 	printf("\n");
